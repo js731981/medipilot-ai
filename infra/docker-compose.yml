@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/docker/backend.Dockerfile
+    restart: always
+    env_file:
+      - ../.env
+    environment:
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      NODE_ENV: "production"
+    expose:
+      - "3000" # for other services on the compose network
+    ports:
+      - "3000:3000" # host:container
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+
+  browser-agent:
+    build:
+      context: ..
+      dockerfile: infra/docker/browser.Dockerfile
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: always
+    environment:
+      - BACKEND_URL=http://backend:3000
+      - HEADLESS=true
+

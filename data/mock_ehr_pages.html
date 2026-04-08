@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mock EHR - MediPilot</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; line-height: 1.4; }
+      .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; max-width: 900px; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      label { display: block; font-weight: 600; margin-top: 12px; }
+      input, textarea { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; }
+      .muted { color: #475569; font-size: 13px; }
+      .pill { display: inline-block; padding: 4px 10px; background: #eef2ff; border-radius: 999px; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Patient Chart <span class="pill">Demo</span></h2>
+      <p class="muted">This page simulates an EHR screen for the browser agent.</p>
+
+      <div class="row">
+        <div>
+          <h3>Patient</h3>
+          <p><b>Name:</b> John Doe</p>
+          <p><b>DOB:</b> 1979-05-12</p>
+          <p><b>MRN:</b> 123456</p>
+        </div>
+        <div>
+          <h3>Visit</h3>
+          <p><b>Date:</b> 2026-04-08</p>
+          <p><b>Chief complaint:</b> Fever, cough, chest pain</p>
+        </div>
+      </div>
+
+      <label for="note">Clinical Note</label>
+      <textarea id="note" rows="6">45M presents with 3 days of fever, productive cough, and mild chest pain. Exam: crackles RLL. Plan: chest X-ray, start antibiotics. Impression: community-acquired pneumonia.</textarea>
+
+      <h3>Suggested Codes (filled by agent)</h3>
+      <label for="icd_codes">ICD-10 Codes</label>
+      <input id="icd_codes" placeholder="ICD codes..." />
+
+      <label for="cpt_codes">CPT Codes</label>
+      <input id="cpt_codes" placeholder="CPT codes..." />
+
+      <label for="confidence">Confidence</label>
+      <input id="confidence" placeholder="0.0 - 1.0" />
+    </div>
+
+    <script>
+      // Keep text visible in the page body for extraction.
+      // The agent extracts from body.innerText, which includes the textarea value in many browsers.
+    </script>
+  </body>
+</html>
+

@@ -1,0 +1,15 @@
+[
+  {
+    "patient_id": "P001",
+    "note": "45M presents with 3 days of fever, productive cough, and mild chest pain. Exam: crackles RLL. Plan: chest X-ray, start antibiotics. Impression: community-acquired pneumonia."
+  },
+  {
+    "patient_id": "P002",
+    "note": "29F with dysuria and urinary frequency for 2 days, no flank pain. UA positive for leukocyte esterase. Assessment: uncomplicated cystitis. Plan: nitrofurantoin and hydration."
+  },
+  {
+    "patient_id": "P003",
+    "note": "67M follow-up visit for type 2 diabetes, reports occasional dizziness. A1c 8.2%. Plan: adjust metformin dose, counseling on diet and exercise."
+  }
+]
+
