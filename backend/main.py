@@ -16,6 +16,8 @@ warnings.filterwarnings(
     category=UserWarning,
 )
 
+from starlette.middleware.cors import CORSMiddleware
+
 from backend.services.clinical_service import clinical_svc  # noqa: F401
 from backend.services.coding_service import coding_svc  # noqa: F401
 from backend.services.workflow_service import workflow_svc
@@ -23,4 +25,11 @@ from backend.services.workflow_service import workflow_svc
 
 # Default service to run (used by docker-compose and browser agent).
 svc = workflow_svc
+
+svc.add_asgi_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 

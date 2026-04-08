@@ -49,6 +49,17 @@ class _WorkflowService:
             "memory_used": result["memory_used"],
         }
 
+    @bentoml.api(route="/run_browser_automation", input_spec=dict, output_spec=dict)
+    def run_browser_automation_api(self, root: dict) -> dict:
+        from browser_agent.main import run_browser_automation
+
+        run_browser_automation(root)
+
+        return {
+            "status": "success",
+            "message": "Automation completed",
+        }
+
 
 workflow_svc = _WorkflowService
 

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mock EHR System</title>
+  <style>
+    body {
+      font-family: Arial;
+      padding: 40px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 400px;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px;
+      background: green;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Mock EHR Form</h2>
+
+    <label>Diagnosis</label>
+    <input type="text" name="diagnosis" placeholder="Enter diagnosis" />
+
+    <label>ICD Code</label>
+    <input type="text" name="icd" placeholder="Enter ICD code" />
+
+    <button type="submit" onclick="submitForm()">Submit</button>
+  </div>
+
+  <script>
+    function submitForm() {
+      alert("Form submitted successfully!");
+    }
+  </script>
+</body>
+</html>
