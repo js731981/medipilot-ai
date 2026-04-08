@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import bentoml
 
-from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from backend.workflows.clinical_workflow import run_workflow
+from backend.workflows.langgraph_workflow import run_langgraph_workflow
 from backend.utils.logger import get_logger, request_context
 
 
@@ -25,26 +24,29 @@ def _normalize_request_id(value: object) -> str | None:
 
 @bentoml.service(name="workflow_service")
 class _WorkflowService:
-    @bentoml.api(route="/health", input_spec=dict, output_spec=dict)
-    def health(self, _: dict) -> dict:
+    @bentoml.api(route="/health")
+    def health(self) -> dict:
         return {
             "status": "ok",
-            "service": "medipilot-ai",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "service": "medipilot-ai"
         }
 
     @bentoml.api(input_spec=dict, output_spec=dict)
-    def run_full_workflow(self, payload: dict) -> dict:
-        text = payload.get("text", "")
-        request_id = _normalize_request_id(payload.get("request_id")) or str(uuid4())
+    def run_full_workflow(self, root: dict) -> dict:
+        text = root.get("text", "")
+        request_id = _normalize_request_id(root.get("request_id")) or str(uuid4())
 
         with request_context(request_id=request_id):
             logger.info("run_full_workflow.start")
-            out = run_workflow(text, request_id=request_id)
+            result = run_langgraph_workflow(text)
             logger.info("run_full_workflow.done")
 
-        # Include request_id in the response for end-to-end correlation.
-        return {"request_id": request_id, **out}
+        return {
+            "request_id": request_id,
+            "clinical": result["clinical"],
+            "coding": result["coding"],
+            "validation": result["validation"],
+        }
 
 
 workflow_svc = _WorkflowService
