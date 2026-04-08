@@ -7,6 +7,7 @@ from typing import Any
 
 from backend.schemas.clinical_schema import ClinicalEntities
 from backend.utils.llm_client import call_llm, safe_json_loads
+from backend.utils.memory import retrieve_similar_cases_text, store_case
 
 
 _PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompts" / "clinical_prompt.txt"
@@ -56,8 +57,21 @@ def _compute_confidence(text: str, *, symptoms: list[str], diagnosis: list[str],
     return float(round(confidence, 3))
 
 
-def extract_clinical_entities(text: str) -> dict[str, Any]:
-    prompt = _PROMPT_PATH.read_text(encoding="utf-8").replace("{{text}}", text)
+def extract_clinical_entities(text: str) -> tuple[dict[str, Any], bool]:
+    template = _PROMPT_PATH.read_text(encoding="utf-8").replace("\r\n", "\n")
+
+    print("Searching similar cases...")
+    memory_used = False
+    try:
+        past_cases_block = retrieve_similar_cases_text(text)
+        memory_used = bool(past_cases_block.strip())
+    except Exception:
+        past_cases_block = ""
+    print(f"Relevant past cases (summary):\n{past_cases_block or '(none)'}")
+
+    prompt = (
+        template.replace("{{text}}", text).replace("{{past_cases}}", past_cases_block)
+    )
     raw = call_llm(prompt)
     data = safe_json_loads(raw)
     validated = ClinicalEntities.model_validate(data)
@@ -68,5 +82,17 @@ def extract_clinical_entities(text: str) -> dict[str, Any]:
         procedures=validated.procedures,
     )
     validated.confidence = confidence
-    return json.loads(validated.model_dump_json())
+    result = json.loads(validated.model_dump_json())
+    try:
+        store_case(
+            {
+                "text": text,
+                "diagnosis": result.get("diagnosis", []),
+                "confidence": result.get("confidence", 0.0),
+            }
+        )
+        print("Stored case in memory")
+    except Exception:
+        pass
+    return result, memory_used
 

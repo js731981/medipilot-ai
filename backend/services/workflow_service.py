@@ -46,6 +46,7 @@ class _WorkflowService:
             "clinical": result["clinical"],
             "coding": result["coding"],
             "validation": result["validation"],
+            "memory_used": result["memory_used"],
         }
 
 

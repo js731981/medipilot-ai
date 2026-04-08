@@ -24,12 +24,13 @@ class WorkflowState(TypedDict):
     clinical: dict
     coding: dict
     validation: dict
+    memory_used: bool
 
 
 def clinical_node(state: WorkflowState) -> dict[str, Any]:
     _log_running_node("clinical")
-    clinical = extract_clinical_entities(state["input_text"])
-    return {**state, "clinical": clinical}
+    clinical, memory_used = extract_clinical_entities(state["input_text"])
+    return {**state, "clinical": clinical, "memory_used": memory_used}
 
 
 def coding_node(state: WorkflowState) -> dict[str, Any]:
@@ -62,6 +63,7 @@ def run_langgraph_workflow(text: str):
         "clinical": {},
         "coding": {},
         "validation": {},
+        "memory_used": False,
     }
 
     result = workflow.invoke(initial_state)

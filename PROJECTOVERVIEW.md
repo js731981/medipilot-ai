@@ -7,7 +7,7 @@ This repo is set up so you can:
 - Run locally with deterministic mocks (no API keys required)
 - Swap in real LLM calls by adding `OPENAI_API_KEY`
 - Replace the mock EHR HTML with your real EHR UI automation targets
-- Evolve the workflow into a LangGraph graph later (boundaries already exist)
+- Use a **LangGraph**-compiled workflow for the default `run_full_workflow` path (with optional similar-case retrieval from in-memory vector memory)
 
 ## Current feature set (complete)
 
@@ -19,7 +19,8 @@ This repo is set up so you can:
     - Coding suggestions
     - Output validation
   - **Input**: `{ "text": string, "request_id"?: uuid-string }`
-  - **Output**: `{ "request_id": uuid-string, "clinical": {...}, "coding": {...}, "validation": {...} }`
+  - **Output**: `{ "request_id": uuid-string, "clinical": {...}, "coding": {...}, "validation": {...}, "memory_used": boolean }`
+    - **`memory_used`**: `true` when the clinical step injected non-empty similar-case text into the LLM prompt (see **Clinical vector memory** below); `false` when no case met the similarity threshold or retrieval failed.
 - **Health endpoint**:
   - **`POST /health`** returns `{ status, service, timestamp }` for readiness/liveness checks
 - **Deterministic mock mode** (no external dependency):
@@ -30,18 +31,29 @@ This repo is set up so you can:
 - **Prompt-driven agents**:
   - Prompt templates live under `backend/prompts/`
   - Agents are pure functions under `backend/agents/`
+- **Clinical vector memory** (`backend/utils/memory.py`):
+  - **Qdrant** client over **`:memory:`** (no disk persistence; resets when the process exits).
+  - **`store_case`**: embeds clinical note text (OpenAI `text-embedding-3-small` when `OPENAI_API_KEY` is set, otherwise a deterministic mock embedding), stores diagnosis, optional codes, confidence, timestamp.
+  - **`search_similar_cases`**: cosine similarity search; results sorted by score (descending); **at most 3** cases returned; default gate **`score > MIN_SIMILARITY_SCORE` (0.7)** — callers may override via `min_score`.
+  - **`retrieve_similar_cases_text`**: returns a **plain-text** block for prompts (not JSON), e.g. labeled lines for symptoms (from stored text), diagnosis, confidence, and date.
+  - When no point passes the threshold after search, the module logs **`No relevant memory found`** at INFO (ensure your logging config shows `backend.utils.memory`).
+- **Clinical extraction prompt** (`clinical_prompt.txt`):
+  - Sections: **Patient data** (current note), **Relevant past cases** (from memory or empty), **Instructions** (use past cases only if relevant; do not blindly copy diagnosis; prioritize current patient data), plus explicit reasoning guidance to reduce retrieval bias.
 - **Request correlation (`request_id`)**:
   - `request_id` is accepted, normalized, and returned in responses
   - Used for end-to-end log correlation across backend and browser agent
 
 ### Workflow implementation
 
-- **Sequential workflow boundaries**:
-  - `extract_clinical_entities(text)`
-  - `suggest_medical_codes(clinical)`
+- **Agent boundaries** (unchanged contracts for coding/validation inputs):
+  - `extract_clinical_entities(text) -> tuple[clinical_dict, memory_used_bool]`
+  - `suggest_medical_codes(clinical)` — receives only entity fields (no `memory_used` on this dict)
   - `validate_output({clinical, coding})`
-- **LangGraph-ready structure**:
-  - Workflow is currently linear but designed with clean boundaries to convert into a graph later.
+- **Default full workflow (LangGraph)**:
+  - Implemented in `backend/workflows/langgraph_workflow.py`: `START → clinical → coding → validation → END`
+  - State carries **`memory_used`** alongside `clinical`, `coding`, and `validation`.
+- **Alternate sequential graph**:
+  - `backend/workflows/clinical_workflow.py` exposes a similar linear graph with the same agent functions and **`memory_used`** in state (useful for tests or alternate wiring).
 
 ### Browser agent (Playwright)
 
@@ -73,10 +85,12 @@ This repo is set up so you can:
 ## Repository map (what lives where)
 
 - **Backend**: `backend/`
-  - Service entry: `backend/main.py` (exports `svc`)
+  - Service entry: `backend/main.py` (exports `svc` → workflow service by default)
   - Workflow service: `backend/services/workflow_service.py`
-  - Workflow logic: `backend/workflows/clinical_workflow.py`
-  - Agents: `backend/agents/`
+  - Workflow logic: **`backend/workflows/langgraph_workflow.py`** (default path for `run_full_workflow`)
+  - Alternate workflow: `backend/workflows/clinical_workflow.py`
+  - Agents: `backend/agents/` (e.g. `clinical_agent.py`, `coding_agent.py`, `validation_agent.py`)
+  - Vector memory utilities: `backend/utils/memory.py`
   - Prompts: `backend/prompts/`
   - Schemas: `backend/schemas/`
   - Settings: `backend/config/settings.py`
@@ -99,7 +113,10 @@ This repo is set up so you can:
     - `clinical`: `{ symptoms: string[], diagnosis: string[], procedures: string[], confidence: number }`
     - `coding`: `{ icd_codes: string[], cpt_codes: string[], confidence: number }`
     - `validation`: `{ valid: boolean, issues: string[] }`
+    - **`memory_used`**: boolean — whether similar-case text was included in the clinical LLM prompt
     - `request_id`: `uuid-string`
+- **`POST /extract_clinical_data`** (when the clinical Bento service is mounted):
+  - Response merges the clinical entity object with **`memory_used`** in one JSON object.
 - **`POST /health`**:
   - Response: `{ status: "ok", service: "medipilot-ai", timestamp: "..." }`
 
@@ -112,6 +129,8 @@ For the formal spec, see `docs/api-spec.md`.
   - Set → real OpenAI calls via the `openai` SDK
 - **`OPENAI_MODEL`**:
   - Defaults to `gpt-4o-mini` if not set
+- **`OPENAI_EMBEDDING_MODEL`** (optional):
+  - Used for vector memory when `OPENAI_API_KEY` is set; defaults to `text-embedding-3-small` (must match embedding size configured in `memory.py`)
 - **`BACKEND_URL`** (browser agent):
   - Defaults to `http://localhost:3000`
   - In Docker Compose: `http://backend:3000`
@@ -124,13 +143,14 @@ For the formal spec, see `docs/api-spec.md`.
 - **Improve extraction/coding prompts**: `backend/prompts/`
 - **Add new agent steps**:
   - Implement in `backend/agents/`
-  - Wire into `backend/workflows/clinical_workflow.py`
-- **Convert to a graph workflow**:
-  - Replace the sequential workflow with a LangGraph graph while keeping existing agent functions and schemas.
+  - Wire into `backend/workflows/langgraph_workflow.py` (and/or `clinical_workflow.py` if you keep that graph in sync)
+- **Tune retrieval**:
+  - Adjust `MIN_SIMILARITY_SCORE`, `MAX_RETRIEVED_CASES`, or prompt instructions in `backend/utils/memory.py` and `backend/prompts/clinical_prompt.txt`
 
 ## Non-goals (what is not implemented yet)
 
 - No real EHR login/session handling (the UI is a local mock HTML file)
-- No persistent storage, audit trail, or PHI/PII compliance controls (demo starter)
+- No durable vector store for clinical memory (Qdrant is in-memory only in this starter)
+- No full audit trail or PHI/PII compliance controls (demo starter)
 - No UI frontend application (only the Playwright agent + mock HTML page)
 

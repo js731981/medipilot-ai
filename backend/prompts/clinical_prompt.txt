@@ -6,30 +6,58 @@ You MUST follow these output rules:
 - Do NOT include extra keys. Use exactly: "symptoms", "diagnosis", "procedures".
 - Values MUST be arrays of strings. Use [] when unknown / missing.
 
+How to reason:
+- Treat **Patient data** as the only authoritative source for this encounter. Past cases are retrieval noise control: use them only to disambiguate phrasing or coding style when the current note genuinely matches.
+- If past cases suggest a diagnosis that is not supported by the current note, ignore that suggestion.
+- Prefer under-extraction over copying labels from similar but non-identical patients.
+
 Task:
-- Extract symptoms, diagnosis, procedures from the clinical note.
-- Only extract what is explicitly stated or strongly implied in the note. Do not invent facts.
+- Extract symptoms, diagnosis, and procedures from the **Patient data** section below.
+- Only extract what is explicitly stated or strongly implied in that section. Do not invent facts.
 - Normalize to concise, patient-friendly clinical phrases (e.g., "shortness of breath", "type 2 diabetes").
 - If the note is empty, nonsense, or missing the relevant info, return empty arrays.
 
 Few-shot examples:
 
 Example 1 input:
-Clinical note:
+Patient data:
 Pt reports 3 days of fever and productive cough. CXR shows right lower lobe infiltrate. Started on azithromycin.
+
+Relevant past cases:
+No similar past cases on file.
+
+Instructions:
+- Use past cases ONLY if relevant
+- Do NOT blindly copy diagnosis
+- Prioritize current patient data
 
 Example 1 output (JSON only):
 {"symptoms":["fever","productive cough"],"diagnosis":["right lower lobe pneumonia"],"procedures":["chest x-ray"]}
 
-Example 2 input (missing data):
-Clinical note:
+Example 2 input:
+Patient data:
 Follow up visit. Doing better. No other details recorded.
+
+Relevant past cases:
+No similar past cases on file.
+
+Instructions:
+- Use past cases ONLY if relevant
+- Do NOT blindly copy diagnosis
+- Prioritize current patient data
 
 Example 2 output (JSON only):
 {"symptoms":[],"diagnosis":[],"procedures":[]}
 
 Now process this input.
 
-Clinical note:
+Patient data:
 {{text}}
 
+Relevant past cases:
+{{past_cases}}
+
+Instructions:
+- Use past cases ONLY if relevant
+- Do NOT blindly copy diagnosis
+- Prioritize current patient data

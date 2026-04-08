@@ -12,9 +12,13 @@ Python **3.12**.
 ## What’s included (current features)
 
 - **Backend AI services (BentoML)**:
-  - `POST /run_full_workflow`: clinical extraction → coding suggestions → validation
+  - `POST /run_full_workflow`: LangGraph workflow — clinical extraction → coding suggestions → validation
   - `POST /health`: health check + UTC timestamp
-  - **Deterministic mock mode** when `OPENAI_API_KEY` is missing (runs end-to-end without external calls)
+  - **Clinical vector memory** (`backend/utils/memory.py`): in-process Qdrant stores embedded cases; retrieval returns up to **3** past cases sorted by similarity, only if cosine score is **strictly greater than 0.7**; otherwise retrieval is empty and the server logs `No relevant memory found` (configure logging at INFO to see it).
+  - **Clinical prompt** (`backend/prompts/clinical_prompt.txt`): **Patient data**, **Relevant past cases** (plain-text summaries, not raw JSON), and **Instructions** so the model prioritizes the current note and does not blindly copy prior diagnoses.
+  - **Workflow response** includes **`memory_used`**: `true` when at least one retrieved case was injected into the prompt, `false` otherwise.
+  - **`POST /extract_clinical_data`** (when serving the clinical service): same extraction path; response merges clinical fields with **`memory_used`**.
+  - **Deterministic mock mode** when `OPENAI_API_KEY` is missing (runs end-to-end without external calls; embeddings use a deterministic hash-based mock)
   - **Request correlation**: `request_id` accepted + returned for tracing across backend + agent logs
 - **Browser agent (Playwright)**:
   - Opens local `data/mock_ehr_pages.html` (mock EHR)
@@ -85,6 +89,8 @@ docker compose -f infra/docker-compose.yml up --build
 
 ### Run full workflow
 
+Response includes `request_id`, `clinical`, `coding`, `validation`, and **`memory_used`** (`true` | `false`).
+
 ```bash
 curl -X POST http://localhost:3000/run_full_workflow ^
   -H "Content-Type: application/json" ^
@@ -94,5 +100,6 @@ curl -X POST http://localhost:3000/run_full_workflow ^
 ## Notes
 
 - If `OPENAI_API_KEY` is empty, the backend returns deterministic mock JSON so the system runs end-to-end.
+- Vector memory uses an **in-memory** Qdrant instance: it does not persist across process restarts. Tuning: `MIN_SIMILARITY_SCORE` and related helpers in `backend/utils/memory.py`.
 - Update `data/mock_ehr_pages.html` to mirror the real EHR page structure you plan to automate.
 
