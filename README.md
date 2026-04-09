@@ -1,6 +1,17 @@
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Python](https://img.shields.io/badge/python-3.10+-green)
+![LLM](https://img.shields.io/badge/LLM-Ollama-orange)
+![Framework](https://img.shields.io/badge/framework-BentoML-purple)
+![Orchestration](https://img.shields.io/badge/orchestration-LangGraph-blueviolet)
+![Vector DB](https://img.shields.io/badge/vector--db-Qdrant-red)
+![Automation](https://img.shields.io/badge/automation-Playwright-yellow)
+![Frontend](https://img.shields.io/badge/frontend-Next.js-black)
+![Status](https://img.shields.io/badge/status-MVP-success)
+
 ## medipilot-ai
 
 Production-ready starter for a **Browser Agent Process Automation** system for Healthcare EHR using:
+Agentic AI system for healthcare EHR automation — from clinical text to decision, action, and proof.
 
 - **BentoML** (AI services)
 - **Playwright** (browser automation)
