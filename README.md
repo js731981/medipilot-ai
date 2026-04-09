@@ -155,3 +155,24 @@ curl -X POST http://localhost:3001/get_screenshot
 - Vector memory uses an **in-memory** Qdrant instance: it does not persist across process restarts. Tuning: `MIN_SIMILARITY_SCORE` and related helpers in `backend/utils/memory.py`.
 - **`data/mock_ehr_pages.html`** is used by the **CLI** agent (`file://`). **`browser_agent/mock-ehr.html`** is used by **`/run_browser_automation`** over **HTTP** on port 8000. Keep them in sync if you change field names or layout.
 - If you change API port or frontend origin, update **`frontend/src/app/page.tsx`** fetch URLs and **`backend/main.py`** `CORSMiddleware` `allow_origins` accordingly.
+
+## Author
+
+**Jayendran Subramanian (Full Stack Data Engineer & AI Builder)**  
+- Passionate about Agentic AI, Data Engineering, and AI-driven automation  
+- Building real-world AI systems for healthcare and enterprise use cases  
+
+🔗 LinkedIn: [linkedin.com/in/csjayendran](https://www.linkedin.com/in/csjayendran/)
+🔗 GitHub: [https://github.com/YOUR-USERNAME](https://github.com/js731981)
+
+## Disclaimer
+
+MediPilot AI is an MVP (Minimum Viable Product) designed to demonstrate agentic AI capabilities in healthcare workflow automation.
+- This system is not a medical device and is not approved for clinical use.
+- It does NOT provide medical advice, diagnosis, or treatment.
+- All outputs are AI-generated and should be considered experimental.
+- Any deployment involving real patient data requires compliance with healthcare regulations (e.g., HIPAA, GDPR) and proper clinical validation.
+Use of this system in real-world healthcare settings must include qualified human oversight and regulatory approval.
+The author disclaims any liability for misuse or unintended use of this system.
+
+
