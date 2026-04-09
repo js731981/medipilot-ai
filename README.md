@@ -15,6 +15,7 @@ Python **3.12**.
 - **Backend AI services (BentoML)**:
   - `POST /run_full_workflow`: LangGraph workflow — clinical extraction → coding suggestions → validation
   - `POST /run_browser_automation`: runs Playwright to open the mock EHR, fill diagnosis/ICD from the last workflow result, and submit (used by the **Approve** action in the frontend)
+  - `POST /get_screenshot`: returns the latest automation screenshot as base64 JSON: `{ "image": "<base64>" }` (frontend renders via a `data:` URL; avoids direct image hotlinking)
   - `POST /health`: health check (`status`, `service`)
   - **CORS** enabled for `http://localhost:3000` (Next.js dev origin) in `backend/main.py`
   - **Clinical vector memory** (`backend/utils/memory.py`): in-process Qdrant stores embedded cases; retrieval returns up to **3** past cases sorted by similarity, only if cosine score is **strictly greater than 0.7**; otherwise retrieval is empty and the server logs `No relevant memory found` (configure logging at INFO to see it).
@@ -25,7 +26,7 @@ Python **3.12**.
   - **Request correlation**: `request_id` accepted + returned for tracing across backend + agent logs
 - **Frontend (`frontend/`)**:
   - **MediPilot AI** page: paste clinical text, **Run AI** → calls `POST /run_full_workflow`, shows clinical/coding/validation-style fields
-  - **Approve** → `POST /run_browser_automation` with `clinical` + `coding` from the result (expects API on **`http://localhost:3001`** in the current build)
+  - **Approve** → `POST /run_browser_automation` with `clinical` + `coding` from the result (expects API on **`http://localhost:3001`** in the current build), then `POST /get_screenshot` and renders `data:image/png;base64,...`
 - **Browser agent (`browser_agent/`, Playwright)**:
   - **CLI path** (`python browser_agent/main.py`): opens `data/mock_ehr_pages.html` via `file://`, runs observe → think → act, calls backend `POST /run_full_workflow`, fills labeled fields, submits
   - **API path** (`run_browser_automation`): opens **`http://localhost:8000/mock-ehr.html`** — run a static server from `browser_agent/` (e.g. `python -m http.server 8000`) so that URL serves `mock-ehr.html`
@@ -138,6 +139,14 @@ Body must include `clinical` and `coding` objects (as returned by `run_full_work
 curl -X POST http://localhost:3001/run_browser_automation ^
   -H "Content-Type: application/json" ^
   -d "{\"clinical\":{\"diagnosis\":[\"Example\"]},\"coding\":{\"icd_codes\":[\"A00.0\"]}}"
+```
+
+### Get latest automation screenshot (base64)
+
+`/get_screenshot` returns JSON with an `image` field containing base64-encoded PNG bytes.
+
+```bash
+curl -X POST http://localhost:3001/get_screenshot
 ```
 
 ## Notes

@@ -19,6 +19,9 @@ This repo is set up so you can:
     - Coding suggestions
     - Output validation
   - **`POST /run_browser_automation`**: imports `browser_agent.main.run_browser_automation`, runs Playwright **synchronously** (Chromium, headful in current code), navigates to **`http://localhost:8000/mock-ehr.html`**, fills `diagnosis` / `icd` inputs from the payload, submits the form. Intended payload shape: `{ "clinical": {...}, "coding": {...} }` as produced by `run_full_workflow`.
+  - **`POST /get_screenshot`**: returns the latest automation screenshot as JSON: `{ "image": "<base64 png>" }`.
+    - The service reads `browser_agent/output.png` from the repo workspace.
+    - Intended for UIs that want to render screenshots reliably without hotlinking or cross-origin `<img src="http://...">` issues. The frontend turns this into `data:image/png;base64,...`.
   - **Input** (`run_full_workflow`): `{ "text": string, "request_id"?: uuid-string }`
   - **Output** (`run_full_workflow`): `{ "request_id": uuid-string, "clinical": {...}, "coding": {...}, "validation": {...}, "memory_used": boolean }`
     - **`memory_used`**: `true` when the clinical step injected non-empty similar-case text into the LLM prompt (see **Clinical vector memory** below); `false` when no case met the similarity threshold or retrieval failed.
@@ -54,6 +57,8 @@ This repo is set up so you can:
   - Text area for clinical note, **Run AI** → `POST http://localhost:3001/run_full_workflow`
   - Renders symptoms, diagnosis, procedures, ICD/CPT, confidence from the response
   - **Approve** → `POST http://localhost:3001/run_browser_automation` with `{ clinical, coding }` from the last result
+  - After automation, fetches screenshot via **`POST http://localhost:3001/get_screenshot`** and renders it by setting:
+    - `setScreenshot("data:image/png;base64," + imgData.image)`
   - **Reject** is a placeholder (alert only)
 - **Typical local ports**: Next dev **3000**, BentoML **3001**, static mock EHR **8000** (see README quickstart).
 
@@ -134,6 +139,8 @@ This repo is set up so you can:
   - Request: `{ "clinical": { ... }, "coding": { ... } }` (typically the objects returned by `run_full_workflow`)
   - Response: `{ "status": "success", "message": "Automation completed" }`
   - Requires a server at **`http://localhost:8000`** serving **`mock-ehr.html`** (see README).
+- **`POST /get_screenshot`**:
+  - Response: `{ "image": "<base64 png>" }` (or `{ "error": "Screenshot not found" }`)
 - **`POST /extract_clinical_data`** (when the clinical Bento service is mounted):
   - Response merges the clinical entity object with **`memory_used`** in one JSON object.
 - **`POST /health`**:

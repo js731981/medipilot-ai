@@ -19,7 +19,7 @@ from client.bento_client import BentoWorkflowClient  # noqa: E402
 from workflows.patient_flow import run_patient_flow  # noqa: E402
 
 
-def run_browser_automation(data: dict) -> None:
+def run_browser_automation(data: dict) -> dict:
     # BentoML runs this API in a thread pool; on Windows the default loop in that
     # thread may not support subprocesses, which Playwright needs to start the driver.
     if sys.platform == "win32":
@@ -46,7 +46,16 @@ def run_browser_automation(data: dict) -> None:
 
         print("Form submitted successfully")
 
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        screenshot_path = os.path.join(BASE_DIR, "output.png")
+        page.screenshot(path=screenshot_path)
+        print("Screenshot saved")
+
         browser.close()
+        return {
+            "status": "success",
+            "screenshot_path": screenshot_path,
+        }
 
 
 def main() -> int:
